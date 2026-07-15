@@ -214,39 +214,6 @@ class LayerNorm(nn.LayerNorm):
         ret = super().forward(x.type(torch.float32))
         return ret.type(orig_type)
 
-class TextTokenProcessor(nn.Module):
-    """文本Token预处理：语义对齐+双角色适配（上下文T+独立模态）"""
-    def __init__(self, text_dim=512, visual_dim=512):
-        super().__init__()
-        # 1. 语义对齐：确保文本与视觉特征空间一致（InfoBridge要求模态特征维度统一）
-        self.feat_proj = nn.Linear(text_dim, visual_dim)  # 文本→视觉维度映射
-        self.feat_norm = nn.LayerNorm(visual_dim)         # 归一化，减少模态分布偏差
-        
-        # 2. 上下文T提取：从文本Token中提取语义类别/场景信息（InfoBridge的T需任务相关）
-        self.context_proj = nn.Sequential(
-            nn.Linear(text_dim, text_dim//2),
-            nn.ReLU(),
-            nn.Linear(text_dim//2, 10)  # 假设输出10个语义类别（如场景：夜晚/白天；服饰：红色/蓝色）
-        )
-
-    def forward(self, text_token):
-        """
-        Args:
-            text_token: 文本上下文Token，shape [batch_size, text_dim] = [32, 512]
-        Returns:
-            text_modal: 作为独立模态的文本特征，shape [32, 512, 1, 1]（匹配视觉特征空间）
-            text_context_T: 作为上下文T的语义信息，shape [32, 10]（语义类别分布）
-        """
-        # 角色1：独立模态特征（适配视觉模态的空间维度，如[B, C, H, W]）
-        text_feat = self.feat_proj(text_token)  # [32, 512]
-        text_feat = self.feat_norm(text_feat)   # [32, 512]
-        text_modal = text_feat.unsqueeze(-1).unsqueeze(-1)  # [32, 512, 1, 1]
-        
-        # 角色2：上下文T（语义引导信息）
-        text_context_T = self.context_proj(text_token)  # [32, 10]
-        text_context_T = F.softmax(text_context_T, dim=1)  # 转为类别概率分布，符合InfoBridge的T定义
-        
-        return text_modal, text_context_T
 
 import torch
 import torch.nn as nn
