@@ -31,7 +31,7 @@ CUDA_VISIBLE_DEVICES=0 python train_net.py \
   OUTPUT_DIR ./logs/MSVR310/current
 ```
 
-## MSV863 / WMVEID863
+## WMVEID863
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python train_net.py \
