@@ -57,7 +57,7 @@ CUDA_VISIBLE_DEVICES=0 python test_net.py \
   OUTPUT_DIR ./logs/RGBNT201/test
 ```
 
-### MSVR310 (current best weight)
+### MSVR310 
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python test_net.py \
@@ -66,7 +66,7 @@ CUDA_VISIBLE_DEVICES=0 python test_net.py \
   OUTPUT_DIR ./logs/MSVR310/test_current_best
 ```
 
-### MSV863 / WMVEID863 (current best weight)
+### WMVEID863 
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python test_net.py \
