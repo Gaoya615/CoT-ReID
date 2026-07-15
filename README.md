@@ -15,8 +15,7 @@
 ## News
 
 - **June 2026:** CoT-ReID is published at CVPR 2026. The paper is available on [CVF Open Access](https://openaccess.thecvf.com/content/CVPR2026/html/Gao_Chain-of-Thought_Guided_Multi-Modal_Object_Re-Identification_CVPR_2026_paper.html).
-- **2026:** Training and evaluation code for RGBNT201, MSVR310, and WMVeID863 is released.
-
+  
 ## Overview
 
 CoT-ReID introduces chain-of-thought (CoT) reasoning into multi-modal object re-identification. It uses hierarchical reasoning text to guide visual representation learning at the early-feature, cross-modal semantic, and final decision levels, producing more robust multi-modal features in challenging scenarios.
@@ -120,7 +119,7 @@ CUDA_VISIBLE_DEVICES=0 python train_net.py \
   OUTPUT_DIR ./logs/MSVR310/current
 ```
 
-### MSV863 / WMVeID863
+### WMVeID863
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python train_net.py \
