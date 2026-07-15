@@ -1,7 +1,6 @@
 import sys
 sys.path.insert(0, "/data/gaoya/cot-reid/dinov3-main")
 
-# 接下来才是你原本的其他 import
 import os
 import torch
 import torch.nn as nn
@@ -817,85 +816,6 @@ __factory_T_type = {
     't2t_vit_t_14': t2t_vit_t_14,
     't2t_vit_t_24': t2t_vit_t_24,
 }
-class EarlyFusionLayer(nn.Module):
-    def __init__(self, img_feat_dim=1024, prompt_dim=512, num_heads=8):
-        super().__init__()
-        """
-        Args:
-    
-        """
-        # 1. 特征维度统一（图像特征→Prompt维度）
-        self.img_proj = nn.Linear(img_feat_dim, prompt_dim)
-        self.img_proj.apply(weights_init_kaiming)  # 论文中权重初始化方式
-
-        self.gate_attn_img2text = nn.MultiheadAttention(
-            embed_dim=prompt_dim,
-            num_heads=num_heads,
-            batch_first=True
-        )
-        self.gate_attn_text2img = nn.MultiheadAttention(
-            embed_dim=prompt_dim,
-            num_heads=num_heads,
-            batch_first=True
-        )
-
-        self.background_token = nn.Parameter(torch.randn(1, 1, prompt_dim))
-        nn.init.normal_(self.background_token, std=0.02)
-
-        self.norm1 = nn.LayerNorm(prompt_dim)
-        self.norm2 = nn.LayerNorm(prompt_dim)
-        self.ffn = nn.Sequential(
-            nn.Linear(prompt_dim, prompt_dim * 2),
-            nn.ReLU(),
-            nn.Linear(prompt_dim * 2, prompt_dim)
-        )
-
-    def gated_attention(self, Q, K, V):
-        # 拼接K/V与背景token [B, seq_len+1, dim]
-        K_with_bg = torch.cat([K, self.background_token.expand(K.shape[0], -1, -1)], dim=1)
-        V_with_bg = torch.cat([V, self.background_token.expand(V.shape[0], -1, -1)], dim=1)
-        
-        # 注意力计算
-        attn_output, _ = self.gate_attn_img2text(
-            query=Q,
-            key=K_with_bg,
-            value=V_with_bg
-        )
-        return attn_output
-
-    def forward(self, img_feat, prompt_feat):
-        """
-        Args:
-            img_feat: 单模态图像特征（如RGB，[B, img_feat_dim]）
-            prompt_feat: Prompt特征（文本/视觉，[B, prompt_dim]）
-        Returns:
-            fused_feat: 融合后特征 [B, prompt_dim]
-        """
-        # 1. 图像特征维度统一
-        img_feat_proj = self.img_proj(img_feat).unsqueeze(1)  # [B, 1, prompt_dim]
-        prompt_feat_expand = prompt_feat.unsqueeze(1)  # [B, 1, prompt_dim]
-
-        # 2. 双向门控注意力
-        prompt_updated = self.gated_attention(
-            Q=prompt_feat_expand,
-            K=img_feat_proj,
-            V=img_feat_proj
-        )
-        prompt_updated = self.norm1(prompt_feat_expand + prompt_updated)
-
-        img_updated = self.gated_attention(
-            Q=img_feat_proj,
-            K=prompt_updated,
-            V=prompt_updated
-        )
-        img_updated = self.norm2(img_feat_proj + img_updated)
-
-        # 3. FFN细化融合特征
-        fused_feat = self.ffn(img_updated.squeeze(1))  # [B, prompt_dim]
-        fused_feat = F.normalize(fused_feat, dim=1)
-
-        return fused_feat
-    
 
 
 def make_model(cfg, num_class, camera_num, view_num=0):
