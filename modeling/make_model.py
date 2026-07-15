@@ -792,35 +792,3 @@ def make_model(cfg, num_class, camera_num, view_num=0):
     # print(f"模型总GFLOPs：{total_flops / 1e9:.2f} GFLOPs")
     print('===========Building CoT-ReID===========')
     return model
-
-
-def compute_cross_modal_entropy(modal_features, temperature=0.07, eps=1e-8):
-    """Compute mean bidirectional matching entropy across modality pairs."""
-    if len(modal_features) < 2:
-        raise ValueError("At least two modal features are required")
-    if temperature <= 0:
-        raise ValueError("temperature must be positive")
-
-    normalized_features = []
-    batch_size = modal_features[0].shape[0]
-    feature_dim = modal_features[0].reshape(batch_size, -1).shape[1]
-    for feature in modal_features:
-        flattened = feature.reshape(feature.shape[0], -1).float()
-        if flattened.shape != (batch_size, feature_dim):
-            raise ValueError("All modal features must have matching batch and feature dimensions")
-        normalized_features.append(F.normalize(flattened, p=2, dim=1))
-
-    pair_entropies = []
-    for source_index in range(len(normalized_features)):
-        for target_index in range(source_index + 1, len(normalized_features)):
-            logits = (
-                normalized_features[source_index]
-                @ normalized_features[target_index].t()
-            ) / temperature
-            source_prob = F.softmax(logits, dim=1)
-            target_prob = F.softmax(logits.t(), dim=1)
-            source_entropy = -(source_prob * source_prob.clamp_min(eps).log()).sum(dim=1).mean()
-            target_entropy = -(target_prob * target_prob.clamp_min(eps).log()).sum(dim=1).mean()
-            pair_entropies.append(0.5 * (source_entropy + target_entropy))
-
-    return torch.stack(pair_entropies).mean()
